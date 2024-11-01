@@ -1,0 +1,90 @@
+plugins {
+    id 'org.springframework.boot' version '2.7.0'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'java'
+    id 'com.spotify.dockerfile' version '1.4.13'
+}
+
+group = 'com.tlc.test'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '1.8'
+
+ext {
+    finalName = 'batch-service-1-hzarljz6sj'
+    springProfile = ''
+    dockerRegistry = project.hasProperty('dockerRegistry') ? project.getProperty('dockerRegistry') : 'default'
+    dockerUser = project.hasProperty('dockerUser') ? project.getProperty('dockerUser') : 'default'
+    dockerPassword = project.hasProperty('dockerPassword') ? project.getProperty('dockerPassword') : 'default'
+    commitRev = project.hasProperty('commitRev') ? project.getProperty('commitRev') : 'latest'
+    serviceName = project.hasProperty('serviceName') ? project.getProperty('serviceName') : 'default'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-batch'
+    implementation 'org.projectlombok:lombok'
+    implementation 'org.springframework.data:spring-data-commons'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:2.1.4'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.batch:spring-batch-test'
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    options.compilerArgs .Main'
+}
+
+dockerfile {
+    dockerfile = file('./src/main/docker/Dockerfile')
+    buildArgs = [
+            JAR_FILE: "${finalName}.jar",
+            SPRING_PROFILE: "${springProfile}"
+    ]
+    repository = dockerRegistry
+}
+
+tasks.register('buildImage') {
+    dependsOn 'dockerfile'
+    doLast {
+        dockerfile {
+            tag "${dockerName}-latest"
+            push()
+        }
+    }
+}
+
+tasks.register('tagImage') {
+    dependsOn 'dockerfile'
+    doLast {
+        dockerfile {
+            tag "${dockerName}-${dockerTag}"
+            push()
+        }
+    }
+}
+
+enforcer {
+    rules = [
+            requireMavenVersion: "3.0.5"
+    ]
+}
+
+dependencyUpdates {
+    checkForGradleUpdate = true
+    outputFormatter = 'plain'
+    reportfileName = 'dependency-updates'
+}
+
+sourceSets {
+    main {
+        resources {
+            srcDirs = ['../simple/src/main/java', '../simple/src/main/resources']
+            include '**/*.xml'
+        }
+    }
+}
